@@ -1,0 +1,72 @@
+# GNS3 Project Files
+*.gns3
+*.gns3project
+*.gns3backup
+__pycache__/
+
+# AWS Configuration Secrets
+aws-vpn-config-*.conf
+aws-vpn-config-*.txt
+vpn-customer-gateway-config.conf
+*.pem
+*.ppk
+
+# Sensitive Data
+*.key
+*.secret
+pre-shared-keys.txt
+aws-credentials.json
+.env
+.env.local
+
+# Log Files
+*.log
+debug-*.txt
+crash-*.txt
+
+# IDE Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# GNS3 Backup/Temporary
+project-files/
+snapshots/
+images/
+
+# Network Captures
+*.pcap
+*.pcapng
+*.cap
+
+# Temporary Files
+*.tmp
+*.bak
+*.swp
+temp/
+tmp/
+
+# Virtual Machine Files
+*.vmdk
+*.vdi
+*.iso
+
+# Documentation Builds
+docs/_build/
+site/
+
+# Python Virtual Environment
+venv/
+env/
+.venv
+
+# Node modules (if using any tools)
+node_modules/
+
+# Credentials and Sensitive Info
+.aws/
+.credentials
+secrets/
