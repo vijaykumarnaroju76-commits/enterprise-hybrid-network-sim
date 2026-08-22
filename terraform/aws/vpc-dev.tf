@@ -32,7 +32,7 @@ resource "aws_route" "dev_to_onprem" {
   route_table_id         = aws_route_table.dev.id
   destination_cidr_block = var.onprem_aggregate_cidr
   transit_gateway_id     = aws_ec2_transit_gateway.this.id
-  depends_on              = [aws_ec2_transit_gateway_vpc_attachment.dev]
+  depends_on             = [aws_ec2_transit_gateway_vpc_attachment.dev]
 }
 
 resource "aws_route_table_association" "dev_tgw_attach" {

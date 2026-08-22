@@ -1,85 +1,57 @@
 # Architecture
 
-This document is the source of truth for the simulation's topology, addressing, VLANs, routing domains, security zones, and traffic flows. Every other document (routing, cloud networking, failure scenarios, automation, Terraform) references the numbering defined here — if you change an address or ASN, update it here first.
+This document is the source of truth for the simulation's topology, addressing, VLANs, routing domains, security zones, and traffic flows. Every other document (routing, cloud networking, failure scenarios, automation, Terraform) should reuse the values defined here.
 
 ## 1. Topology
 
-```
+```text
                                    INTERNET
                                        |
-                               ┌───────┴────────┐
-                               │  Palo Alto FW   │  (untrust <-> DMZ <-> trust)
-                               │   PA-EDGE-01    │
-                               └───────┬────────┘
+                               +-------+--------+
+                               |  Palo Alto FW  |
+                               |   PA-EDGE-01   |
+                               +-------+--------+
                                        |
-                             ┌─────────┴─────────┐
-                             │  Enterprise Core   │  (L3 switching, VLAN SVIs)
-                             │  CORE-SW-01/02     │
-                             └────┬─────────┬────┘
-                                  |         |
-                              ┌───┴───┐ ┌───┴───┐
-                              │ CORE  │ │ CORE  │
-                              │  R1   │ │  R2   │   iBGP + OSPF Area 0
-                              └───┬───┘ └───┬───┘   (dual-homed border pair)
-                       ┌──────────┤         ├──────────┐
-                       |          |         |          |
-                  ┌────┴───┐  ┌───┴────┐┌───┴────┐ ┌───┴────┐
-                  │ SITE1  │  │ SITE2  ││ SITE3  │ │ SITE4  │   OSPF Area 10
-                  │ RTR    │  │ RTR    ││ RTR    │ │ RTR    │   (branch sites)
-                  └────────┘  └────────┘└────────┘ └────────┘
-                                  |         |
-                            eBGP  |         |  eBGP
-                        (primary) |         | (primary)
-                                  |         |
-                            ┌─────┴───┐ ┌───┴─────┐
-                            │   AWS   │ │  Azure  │
-                            │  (R1)   │ │  (R2)   │   cross-links = backup paths
-                            └────┬────┘ └────┬────┘   R1<->Azure, R2<->AWS (dashed)
-                                 |            |
-                       ┌─────────┴───────┐ ┌──┴──────────────┐
-                       │ Transit Gateway │ │  VPN Gateway     │
-                       │   AS 64512      │ │  AS 65515        │
-                       └───┬─────────┬───┘ └───┬──────────┬──┘
-                           |         |          |          |
-                     ┌─────┴──┐ ┌────┴───┐┌─────┴──┐ ┌─────┴──┐
-                     │Prod VPC│ │Dev VPC ││Prod VNet│ │Dev VNet│
-                     │172.31/16│ │172.30/16││172.32/16│ │172.33/16│
-                     └────────┘ └────────┘└────────┘ └────────┘
+                              Enterprise Core
+                                  /       \
+                             CORE-R1     CORE-R2
+                               |           |
+                          AWS primary   Azure primary
+                               |           |
+                              AWS        Azure
 ```
 
-Redundancy model: **CORE-R1** is the primary on-premises peer for AWS and the backup peer for Azure; **CORE-R2** is the primary peer for Azure and the backup peer for AWS. Both links per cloud are always up — BGP local preference and AS-path prepending (see [routing.md](routing.md)) decide which one carries production traffic, so a single router or single VPN tunnel failure never isolates a cloud.
+CORE-R1 and CORE-R2 form the redundant enterprise border pair. CORE-R1 is the preferred AWS edge and CORE-R2 is the preferred Azure edge. Backup VPN connectivity is maintained where explicitly modeled below.
 
 ## 2. Autonomous System / Router ID Plan
 
-| Entity | ASN | Router ID / Loopback (Lo0) | Role |
-|---|---|---|---|
-| Enterprise (on-prem) | 65000 | — | Private ASN, iBGP between CORE-R1/R2, redistributes into OSPF |
-| CORE-R1 | 65000 | 10.255.0.1 | Border router, primary AWS peer |
-| CORE-R2 | 65000 | 10.255.0.2 | Border router, primary Azure peer |
-| SITE1-RTR | 65000 (OSPF only, no eBGP) | 10.255.0.11 | Branch, Area 10 |
-| SITE2-RTR | 65000 | 10.255.0.12 | Branch, Area 10 |
-| SITE3-RTR | 65000 | 10.255.0.13 | Branch, Area 10 |
-| SITE4-RTR | 65000 | 10.255.0.14 | Branch, Area 10 |
-| AWS Transit Gateway | 64512 | — | Cloud edge, AWS-managed |
-| Azure VPN Gateway | 65515 | — | Cloud edge, Azure default BGP ASN |
-
-Loopbacks are carved from `10.255.0.0/24`, used as OSPF router IDs and BGP `update-source`/`next-hop-self` anchors so adjacencies survive a single physical-interface flap.
+| Entity | ASN | Router ID / Loopback | Role |
+|---|---:|---|---|
+| Enterprise | 65000 | — | Private enterprise ASN |
+| CORE-R1 | 65000 | 10.255.0.1 | Border router, primary AWS |
+| CORE-R2 | 65000 | 10.255.0.2 | Border router, primary Azure |
+| SITE1-RTR | — | 10.255.0.11 | OSPF Area 10 |
+| SITE2-RTR | — | 10.255.0.12 | OSPF Area 20 |
+| SITE3-RTR | — | 10.255.0.13 | OSPF Area 30 |
+| SITE4-RTR | — | 10.255.0.14 | OSPF Area 40 |
+| AWS Transit Gateway | 64512 | — | AWS-managed BGP peer |
+| Azure VPN Gateway | 65515 | — | Azure BGP peer |
 
 ## 3. IP Addressing Plan
 
-### 3.1 On-premises site networks
+### 3.1 On-premises networks
 
 | Site | Aggregate | Users | Servers | Management |
 |---|---|---|---|---|
-| HQ (Core) | 10.0.0.0/16 | 10.0.10.0/24 | 10.0.20.0/24 | 10.0.99.0/24 |
+| HQ | 10.0.0.0/16 | 10.0.10.0/24 | 10.0.20.0/24 | 10.0.99.0/24 |
 | Site1 | 10.1.0.0/16 | 10.1.1.0/24 | 10.1.2.0/24 | 10.1.99.0/24 |
 | Site2 | 10.2.0.0/16 | 10.2.1.0/24 | 10.2.2.0/24 | 10.2.99.0/24 |
 | Site3 | 10.3.0.0/16 | 10.3.1.0/24 | 10.3.2.0/24 | 10.3.99.0/24 |
 | Site4 | 10.4.0.0/16 | 10.4.1.0/24 | 10.4.2.0/24 | 10.4.99.0/24 |
 
-The whole on-prem block summarizes to `10.0.0.0/8` and is advertised to the clouds as a single aggregate (`aggregate-address 10.0.0.0 255.0.0.0 summary-only`) to keep the cloud-side route tables small.
+The enterprise advertises `10.0.0.0/8` toward the cloud. A high-administrative-distance Null0 route supplies the exact aggregate required by the BGP `network` statement while more-specific OSPF routes remain preferred.
 
-### 3.2 WAN transit links (Core <-> Site routers, point-to-point /30s)
+### 3.2 WAN transit links
 
 | Link | Subnet |
 |---|---|
@@ -87,77 +59,97 @@ The whole on-prem block summarizes to `10.0.0.0/8` and is advertised to the clou
 | CORE-R1 <-> SITE2-RTR | 192.168.1.4/30 |
 | CORE-R2 <-> SITE3-RTR | 192.168.1.8/30 |
 | CORE-R2 <-> SITE4-RTR | 192.168.1.12/30 |
-| CORE-R1 <-> CORE-R2 (iBGP/OSPF backbone link) | 192.168.1.16/30 |
+| CORE-R1 <-> CORE-R2 | 192.168.1.16/30 |
 
-### 3.3 VPN transport (on-prem to cloud)
+### 3.3 AWS Site-to-Site VPN inside networks
 
-| Tunnel | Local | Remote (cloud endpoint) |
+Each AWS Site-to-Site VPN connection contains two AWS-managed IPsec tunnels. The Terraform configuration assigns deterministic inside CIDRs:
+
+| Connection | Tunnel | Inside CIDR |
 |---|---|---|
-| CORE-R1 -> AWS TGW (primary) | Tunnel0, 169.254.10.0/30 | 203.0.113.1 |
-| CORE-R2 -> AWS TGW (backup) | Tunnel1, 169.254.10.4/30 | 203.0.113.2 |
-| CORE-R2 -> Azure VPN GW (primary) | Tunnel2, 169.254.20.0/30 | 203.0.113.10 |
-| CORE-R1 -> Azure VPN GW (backup) | Tunnel3, 169.254.20.4/30 | 203.0.113.11 |
+| CORE-R1 primary AWS VPN | Tunnel 1 | 169.254.10.0/30 |
+| CORE-R1 primary AWS VPN | Tunnel 2 | 169.254.10.4/30 |
+| CORE-R2 backup AWS VPN | Tunnel 1 | 169.254.10.8/30 |
+| CORE-R2 backup AWS VPN | Tunnel 2 | 169.254.10.12/30 |
 
-Tunnel interfaces use link-local `169.254.0.0/16` addressing (matching AWS/Azure VPN defaults) with MTU 1436 to absorb IPsec/GRE overhead — see [cloud-networking.md](cloud-networking.md) for the full tunnel and BGP-over-VPN configuration.
+The actual customer-gateway and AWS-side usable addresses within each /30 must match the values returned by AWS for the VPN connection and should be consumed from Terraform/AWS outputs when building the router configuration.
 
-### 3.4 Cloud address space
+### 3.4 Azure BGP peering
 
-| Cloud | VPC/VNet | CIDR | Purpose |
-|---|---|---|---|
-| AWS | Prod VPC | 172.31.0.0/16 | Production workloads |
-| AWS | Dev VPC | 172.30.0.0/16 | Development/test |
-| Azure | Prod VNet | 172.32.0.0/16 | Production workloads |
-| Azure | Dev VNet | 172.33.0.0/16 | Development/test |
+Azure and on-premises BGP peers use distinct APIPA addresses.
 
-Full subnet breakdown (TGW/GatewaySubnet, app, data tiers) is in [cloud-networking.md](cloud-networking.md).
+| Connection | On-prem BGP peer | Azure VNG BGP peer |
+|---|---|---|
+| CORE-R2 -> Azure Prod (primary) | 169.254.20.1 | 169.254.20.2 |
+| CORE-R1 -> Azure Prod (backup) | 169.254.20.5 | Azure peer address must be configured consistently for the backup connection |
+| CORE-R2 -> Azure Dev (primary) | 169.254.21.1 | 169.254.21.2 |
 
-## 4. VLANs (HQ Core)
+The Terraform configuration explicitly defines custom APIPA addresses for the Azure virtual network gateways where modeled. On-premises Local Network Gateway `bgp_peering_address` values represent the customer-side peer, not the Azure-side neighbor.
 
-| VLAN | Name | Subnet | SVI (on CORE-SW) |
-|---|---|---|---|
-| 10 | Users | 10.0.10.0/24 | 10.0.10.1 |
-| 20 | Servers | 10.0.20.0/24 | 10.0.20.1 |
-| 30 | Voice | 10.0.30.0/24 | 10.0.30.1 |
-| 99 | Management (OOB) | 10.0.99.0/24 | 10.0.99.1 |
-| 100 | DMZ | 10.0.100.0/24 | 10.0.100.1 |
+### 3.5 Cloud address space
 
-Branch sites (Site1-4) mirror VLANs 10/20/99 locally within their own `/16`, per the table in 3.1.
+| Cloud | Network | CIDR |
+|---|---|---|
+| AWS | Prod VPC | 172.31.0.0/16 |
+| AWS | Dev VPC | 172.30.0.0/16 |
+| Azure | Prod VNet | 172.32.0.0/16 |
+| Azure | Dev VNet | 172.33.0.0/16 |
+
+## 4. VLANs
+
+| VLAN | Name | HQ Subnet |
+|---|---|---|
+| 10 | Users | 10.0.10.0/24 |
+| 20 | Servers | 10.0.20.0/24 |
+| 30 | Voice | 10.0.30.0/24 |
+| 99 | Management | 10.0.99.0/24 |
+| 100 | DMZ | 10.0.100.0/24 |
+
+LAN interfaces are passive in OSPF. Their prefixes are advertised, but endpoints are not expected to form routing adjacencies.
 
 ## 5. Routing Domains
 
 | Domain | Protocol | Scope |
 |---|---|---|
-| Backbone | OSPF Area 0 | CORE-R1, CORE-R2, WAN transit link between them |
-| Branches | OSPF Area 10 | SITE1-4 <-> CORE-R1/R2, injected into Area 0 via ABR |
-| Enterprise <-> Cloud | eBGP | CORE-R1/R2 <-> AWS TGW (AS 64512), CORE-R2/R1 <-> Azure VPN GW (AS 65515) |
-| Core redundancy | iBGP | CORE-R1 <-> CORE-R2, AS 65000, carries cloud-learned routes between border routers |
+| Backbone | OSPF Area 0 | CORE-R1 <-> CORE-R2 |
+| Site1 | OSPF Area 10 | SITE1-RTR <-> CORE-R1 |
+| Site2 | OSPF Area 20 | SITE2-RTR <-> CORE-R1 |
+| Site3 | OSPF Area 30 | SITE3-RTR <-> CORE-R2 |
+| Site4 | OSPF Area 40 | SITE4-RTR <-> CORE-R2 |
+| Enterprise <-> AWS | eBGP | AS 65000 <-> AS 64512 |
+| Enterprise <-> Azure | eBGP | AS 65000 <-> AS 65515 |
+| Core redundancy | iBGP | CORE-R1 <-> CORE-R2 |
 
-OSPF routes are redistributed into BGP (as the aggregate `10.0.0.0/8`, not individual /24s) and cloud-learned BGP routes are redistributed back into OSPF as external (E2) routes at the core so branch sites can reach AWS/Azure without running BGP themselves. See [routing.md](routing.md) for the exact redistribution and filtering configuration — this boundary is also where Upgrade 4's "route redistribution loop" failure scenario is set.
+Cloud-learned routes can be redistributed into OSPF under explicit prefix filtering. Enterprise routes are not blindly redistributed into BGP; only the intentional `10.0.0.0/8` aggregate is originated.
 
 ## 6. Security Zones
 
-| Zone | Members | Trust level |
-|---|---|---|
-| Untrust | Internet-facing interface on PA-EDGE-01 | None |
-| DMZ | VLAN 100 (10.0.100.0/24) | Restricted, published services only |
-| Trust (Enterprise Core) | VLAN 10/20/30, Core routers | Internal |
-| Branch | Site1-4 VLANs | Internal, policy-matched to Trust |
-| Cloud-Prod | AWS Prod VPC, Azure Prod VNet | Internal, production data |
-| Cloud-Dev | AWS Dev VPC, Azure Dev VNet | Internal, non-production |
-| Management/OOB | VLAN 99 per site | Restricted, admin access only |
-
-The Palo Alto firewall enforces zone-based policy at the perimeter (Untrust/DMZ/Trust). Prod and Dev cloud zones are kept on separate VPCs/VNets and separate Transit Gateway / route-table associations specifically so a Dev misconfiguration (see Upgrade 4, cloud route-table error) cannot leak into Prod.
+| Zone | Purpose |
+|---|---|
+| Untrust | Internet-facing |
+| DMZ | Published services |
+| Trust | Enterprise internal networks |
+| Branch | Branch-site networks |
+| Cloud-Prod | Production cloud workloads |
+| Cloud-Dev | Development cloud workloads |
+| Management/OOB | Administrative access |
 
 ## 7. Traffic Flows
 
-**User to Internet (egress):** Branch/HQ VLAN -> Site or Core router (OSPF) -> CORE Core switch -> PA-EDGE-01 (NAT + security policy) -> Internet.
+**Internet egress:** Enterprise/branch -> core -> Palo Alto -> Internet.
 
-**Branch to HQ server:** Site VLAN -> SITE-RTR -> OSPF Area 10 -> ABR (CORE-R1/R2) -> Area 0 -> VLAN 20 SVI on CORE-SW.
+**Branch to HQ:** Branch LAN -> site router -> OSPF -> core -> HQ server VLAN.
 
-**On-prem to AWS Prod:** HQ/Branch subnet -> Core (OSPF) -> CORE-R1 (eBGP, primary tunnel) -> AWS TGW -> TGW route table (prod) -> Prod VPC. On CORE-R1 failure, iBGP + lower-preference path via CORE-R2's backup tunnel takes over.
+**On-prem to AWS:** Enterprise route -> preferred CORE-R1 AWS VPN; CORE-R2 provides the backup AWS VPN connection.
 
-**On-prem to Azure Prod:** mirrors the AWS flow via CORE-R2 as primary, CORE-R1 as backup.
+**On-prem to Azure Prod:** Enterprise route -> CORE-R2 primary Azure connection. CORE-R1 provides the documented Prod backup connection.
 
-**AWS to Azure (cross-cloud):** not directly peered in this design — traffic transits on-premises (AWS -> TGW -> VPN -> CORE-R1/R2 -> CORE-R2/R1 -> VPN -> Azure VNG). This is a deliberate simplification (no cloud-to-cloud VPN or cloud WAN) that keeps on-prem as the hybrid hub, and is called out explicitly so it isn't mistaken for an oversight.
+**On-prem to Azure Dev:** Enterprise route -> CORE-R2 -> Azure Dev VNG.
 
-**Dev isolation:** Dev VPC/VNet route tables and UDRs only contain routes to the on-prem aggregate and to each other's Dev network — never to Prod CIDRs — enforced at the TGW route table and Azure UDR layer, not just security groups/NSGs.
+**AWS to Azure:** There is no native direct AWS-to-Azure peering in this lab. Any cross-cloud routing must be explicitly engineered through the on-premises hub and must not be inferred from illustrative BGP output.
+
+## 8. Validation Status
+
+The configuration snippets and command outputs in this repository are design/expected-state examples unless explicitly labeled as captured lab output. Terraform represents deployable infrastructure definitions, but this repository does not claim that the AWS/Azure resources have been applied to a live account.
+
+Before treating the design as validated, run Terraform formatting/validation, Python syntax checks, YAML parsing, and the documented GNS3/network validation procedures.

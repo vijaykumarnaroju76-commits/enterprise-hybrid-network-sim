@@ -3,8 +3,8 @@
 # documentation/cloud-networking.md section 1.2/1.3.
 
 resource "aws_ec2_transit_gateway" "this" {
-  description                    = "enterprise-hybrid-network-sim TGW"
-  amazon_side_asn                = var.tgw_asn
+  description                     = "enterprise-hybrid-network-sim TGW"
+  amazon_side_asn                 = var.tgw_asn
   default_route_table_association = "disable"
   default_route_table_propagation = "disable"
   tags                            = merge(var.tags, { Name = "hub-tgw" })
@@ -12,48 +12,48 @@ resource "aws_ec2_transit_gateway" "this" {
 
 resource "aws_ec2_transit_gateway_vpc_attachment" "prod" {
   transit_gateway_id = aws_ec2_transit_gateway.this.id
-  vpc_id              = aws_vpc.prod.id
-  subnet_ids          = [aws_subnet.prod_tgw_attach.id]
-  tags                = merge(var.tags, { Name = "tgw-attach-prod" })
+  vpc_id             = aws_vpc.prod.id
+  subnet_ids         = [aws_subnet.prod_tgw_attach.id]
+  tags               = merge(var.tags, { Name = "tgw-attach-prod" })
 }
 
 resource "aws_ec2_transit_gateway_vpc_attachment" "dev" {
   transit_gateway_id = aws_ec2_transit_gateway.this.id
-  vpc_id              = aws_vpc.dev.id
-  subnet_ids          = [aws_subnet.dev_tgw_attach.id]
-  tags                = merge(var.tags, { Name = "tgw-attach-dev" })
+  vpc_id             = aws_vpc.dev.id
+  subnet_ids         = [aws_subnet.dev_tgw_attach.id]
+  tags               = merge(var.tags, { Name = "tgw-attach-dev" })
 }
 
 resource "aws_ec2_transit_gateway_route_table" "prod" {
   transit_gateway_id = aws_ec2_transit_gateway.this.id
-  tags                = merge(var.tags, { Name = "tgw-rt-prod" })
+  tags               = merge(var.tags, { Name = "tgw-rt-prod" })
 }
 
 resource "aws_ec2_transit_gateway_route_table" "dev" {
   transit_gateway_id = aws_ec2_transit_gateway.this.id
-  tags                = merge(var.tags, { Name = "tgw-rt-dev" })
+  tags               = merge(var.tags, { Name = "tgw-rt-dev" })
 }
 
 resource "aws_ec2_transit_gateway_route_table_association" "prod" {
-  transit_gateway_attachment_id = aws_ec2_transit_gateway_vpc_attachment.prod.id
+  transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.prod.id
   transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.prod.id
 }
 
 resource "aws_ec2_transit_gateway_route_table_association" "dev" {
-  transit_gateway_attachment_id = aws_ec2_transit_gateway_vpc_attachment.dev.id
+  transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.dev.id
   transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.dev.id
 }
 
 # Static route: each VPC's own CIDR into its own TGW route table.
 resource "aws_ec2_transit_gateway_route" "prod_vpc" {
-  destination_cidr_block        = var.prod_vpc_cidr
-  transit_gateway_attachment_id = aws_ec2_transit_gateway_vpc_attachment.prod.id
+  destination_cidr_block         = var.prod_vpc_cidr
+  transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.prod.id
   transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.prod.id
 }
 
 resource "aws_ec2_transit_gateway_route" "dev_vpc" {
-  destination_cidr_block        = var.dev_vpc_cidr
-  transit_gateway_attachment_id = aws_ec2_transit_gateway_vpc_attachment.dev.id
+  destination_cidr_block         = var.dev_vpc_cidr
+  transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.dev.id
   transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.dev.id
 }
 

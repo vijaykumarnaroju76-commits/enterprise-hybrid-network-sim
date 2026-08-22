@@ -11,9 +11,9 @@ resource "azurerm_route_table" "prod_app" {
   tags                = var.tags
 
   route {
-    name                   = "to-onprem"
-    address_prefix         = var.onprem_aggregate_cidr
-    next_hop_type          = "VirtualNetworkGateway"
+    name           = "to-onprem"
+    address_prefix = var.onprem_aggregate_cidr
+    next_hop_type  = "VirtualNetworkGateway"
   }
 }
 
@@ -24,9 +24,9 @@ resource "azurerm_route_table" "prod_data" {
   tags                = var.tags
 
   route {
-    name                   = "to-onprem"
-    address_prefix         = var.onprem_aggregate_cidr
-    next_hop_type          = "VirtualNetworkGateway"
+    name           = "to-onprem"
+    address_prefix = var.onprem_aggregate_cidr
+    next_hop_type  = "VirtualNetworkGateway"
   }
 }
 
@@ -37,9 +37,9 @@ resource "azurerm_route_table" "dev_app" {
   tags                = var.tags
 
   route {
-    name                   = "to-onprem"
-    address_prefix         = var.onprem_aggregate_cidr
-    next_hop_type          = "VirtualNetworkGateway"
+    name           = "to-onprem"
+    address_prefix = var.onprem_aggregate_cidr
+    next_hop_type  = "VirtualNetworkGateway"
   }
 }
 

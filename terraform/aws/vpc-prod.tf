@@ -42,7 +42,7 @@ resource "aws_route" "prod_to_onprem" {
   route_table_id         = aws_route_table.prod.id
   destination_cidr_block = var.onprem_aggregate_cidr
   transit_gateway_id     = aws_ec2_transit_gateway.this.id
-  depends_on              = [aws_ec2_transit_gateway_vpc_attachment.prod]
+  depends_on             = [aws_ec2_transit_gateway_vpc_attachment.prod]
 }
 
 resource "aws_route_table_association" "prod_tgw_attach" {
