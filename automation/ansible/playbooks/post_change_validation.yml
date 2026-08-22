@@ -1,0 +1,52 @@
+---
+# Snapshot state after a maintenance change, then diff against the
+# pre-change snapshot and fail the play if OSPF/BGP neighbor counts
+# dropped or previously-present routes disappeared.
+# Usage: ansible-playbook -i inventory/hosts.yaml playbooks/post_change_validation.yml
+- name: Import shared collection logic with snapshot_label=post-change
+  import_playbook: collect_state.yml
+  vars:
+    snapshot_label: post-change
+
+- name: Diff post-change snapshot against pre-change baseline
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Load pre-change snapshot
+      delegate_to: localhost
+      ansible.builtin.set_fact:
+        pre_snapshot: "{{ lookup('file', playbook_dir + '/../../output/ansible/pre-change/' + inventory_hostname + '.json') | from_json }}"
+
+    - name: Load post-change snapshot
+      delegate_to: localhost
+      ansible.builtin.set_fact:
+        post_snapshot: "{{ lookup('file', playbook_dir + '/../../output/ansible/post-change/' + inventory_hostname + '.json') | from_json }}"
+
+    - name: Fail if OSPF neighbor count dropped
+      ansible.builtin.assert:
+        that:
+          - (post_snapshot.ospf_neighbor | length) >= (pre_snapshot.ospf_neighbor | length)
+        fail_msg: >-
+          {{ inventory_hostname }}: OSPF neighbor count dropped from
+          {{ pre_snapshot.ospf_neighbor | length }} to {{ post_snapshot.ospf_neighbor | length }}
+          after the change — see documentation/failure-scenarios/02-ospf-adjacency-failure.md.
+        success_msg: "{{ inventory_hostname }}: OSPF neighbor count unchanged or improved."
+
+    - name: Fail if BGP neighbor count dropped
+      when: "'core' in group_names"
+      ansible.builtin.assert:
+        that:
+          - (post_snapshot.bgp_summary | length) >= (pre_snapshot.bgp_summary | length)
+        fail_msg: >-
+          {{ inventory_hostname }}: BGP neighbor count dropped after the change —
+          see documentation/failure-scenarios/01-bgp-neighbor-down.md.
+        success_msg: "{{ inventory_hostname }}: BGP neighbor count unchanged or improved."
+
+    - name: Fail if the routing table lost prefixes present before the change
+      ansible.builtin.assert:
+        that:
+          - (post_snapshot.route_table | length) >= (pre_snapshot.route_table | length)
+        fail_msg: >-
+          {{ inventory_hostname }}: routing table has fewer entries after the change
+          ({{ pre_snapshot.route_table | length }} -> {{ post_snapshot.route_table | length }}).
+        success_msg: "{{ inventory_hostname }}: route count unchanged or improved."

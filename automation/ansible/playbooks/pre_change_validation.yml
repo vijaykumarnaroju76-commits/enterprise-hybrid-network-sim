@@ -1,0 +1,7 @@
+---
+# Snapshot OSPF/BGP/route state before a maintenance change.
+# Usage: ansible-playbook -i inventory/hosts.yaml playbooks/pre_change_validation.yml
+- name: Import shared collection logic with snapshot_label=pre-change
+  import_playbook: collect_state.yml
+  vars:
+    snapshot_label: pre-change

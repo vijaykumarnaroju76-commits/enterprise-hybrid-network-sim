@@ -1,0 +1,48 @@
+---
+# Shared collection play, included by pre_change_validation.yml and
+# post_change_validation.yml so both snapshots use identical logic.
+- name: Collect OSPF/BGP/route state via Genie-parsed show commands
+  hosts: all
+  gather_facts: false
+  vars:
+    snapshot_dir: "{{ playbook_dir }}/../../output/ansible/{{ snapshot_label }}"
+  tasks:
+    - name: Ensure snapshot directory exists
+      delegate_to: localhost
+      run_once: true
+      ansible.builtin.file:
+        path: "{{ snapshot_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Collect show ip ospf neighbor
+      cisco.ios.ios_command:
+        commands:
+          - show ip ospf neighbor
+      register: ospf_result
+
+    - name: Collect show ip bgp summary
+      cisco.ios.ios_command:
+        commands:
+          - show ip bgp summary
+      register: bgp_result
+      when: "'core' in group_names"
+
+    - name: Collect show ip route
+      cisco.ios.ios_command:
+        commands:
+          - show ip route
+      register: route_result
+
+    - name: Write per-device snapshot
+      delegate_to: localhost
+      ansible.builtin.copy:
+        dest: "{{ snapshot_dir }}/{{ inventory_hostname }}.json"
+        content: |
+          {
+            "device": "{{ inventory_hostname }}",
+            "ospf_neighbor": {{ ospf_result.stdout | default([]) | to_json }},
+            "bgp_summary": {{ bgp_result.stdout | default([]) | to_json }},
+            "route_table": {{ route_result.stdout | default([]) | to_json }}
+          }
+        mode: "0644"

@@ -1,0 +1,40 @@
+# Device inventory for the collection scripts in this directory.
+# Loopback addresses match documentation/architecture.md section 2 (Router ID plan).
+# Credentials come from NET_USERNAME / NET_PASSWORD environment variables — never stored here.
+devices:
+  - name: CORE-R1
+    host: 10.255.0.1
+    device_type: cisco_ios
+    role: core-border
+    expected_ospf_neighbors: 3
+    expected_bgp_neighbors: 3
+  - name: CORE-R2
+    host: 10.255.0.2
+    device_type: cisco_ios
+    role: core-border
+    expected_ospf_neighbors: 3
+    expected_bgp_neighbors: 3
+  - name: SITE1-RTR
+    host: 10.255.0.11
+    device_type: cisco_ios
+    role: branch
+    expected_ospf_neighbors: 1
+    expected_bgp_neighbors: 0
+  - name: SITE2-RTR
+    host: 10.255.0.12
+    device_type: cisco_ios
+    role: branch
+    expected_ospf_neighbors: 1
+    expected_bgp_neighbors: 0
+  - name: SITE3-RTR
+    host: 10.255.0.13
+    device_type: cisco_ios
+    role: branch
+    expected_ospf_neighbors: 1
+    expected_bgp_neighbors: 0
+  - name: SITE4-RTR
+    host: 10.255.0.14
+    device_type: cisco_ios
+    role: branch
+    expected_ospf_neighbors: 1
+    expected_bgp_neighbors: 0

@@ -63,6 +63,18 @@ venv/
 env/
 .venv
 
+# Automation script output (collected device state, backups, reports)
+automation/output/
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+
 # Node modules (if using any tools)
 node_modules/
 

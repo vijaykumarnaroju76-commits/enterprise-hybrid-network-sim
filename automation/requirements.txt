@@ -1,0 +1,6 @@
+netmiko>=4.3.0
+ansible>=9.0.0
+pyats[full]>=24.1
+genie>=24.1
+PyYAML>=6.0
+rich>=13.7.0

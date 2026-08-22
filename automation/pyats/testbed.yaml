@@ -1,0 +1,97 @@
+---
+# pyATS testbed for the six on-prem devices. Loopbacks match
+# documentation/architecture.md section 2. Credentials come from the
+# NET_USERNAME / NET_PASSWORD environment variables via %ENV substitution.
+testbed:
+  name: enterprise-hybrid-network-sim
+
+devices:
+  CORE-R1:
+    os: iosxe
+    type: router
+    credentials:
+      default:
+        username: "%ENV{NET_USERNAME}"
+        password: "%ENV{NET_PASSWORD}"
+    connections:
+      cli:
+        protocol: ssh
+        ip: 10.255.0.1
+
+  CORE-R2:
+    os: iosxe
+    type: router
+    credentials:
+      default:
+        username: "%ENV{NET_USERNAME}"
+        password: "%ENV{NET_PASSWORD}"
+    connections:
+      cli:
+        protocol: ssh
+        ip: 10.255.0.2
+
+  SITE1-RTR:
+    os: iosxe
+    type: router
+    credentials:
+      default:
+        username: "%ENV{NET_USERNAME}"
+        password: "%ENV{NET_PASSWORD}"
+    connections:
+      cli:
+        protocol: ssh
+        ip: 10.255.0.11
+
+  SITE2-RTR:
+    os: iosxe
+    type: router
+    credentials:
+      default:
+        username: "%ENV{NET_USERNAME}"
+        password: "%ENV{NET_PASSWORD}"
+    connections:
+      cli:
+        protocol: ssh
+        ip: 10.255.0.12
+
+  SITE3-RTR:
+    os: iosxe
+    type: router
+    credentials:
+      default:
+        username: "%ENV{NET_USERNAME}"
+        password: "%ENV{NET_PASSWORD}"
+    connections:
+      cli:
+        protocol: ssh
+        ip: 10.255.0.13
+
+  SITE4-RTR:
+    os: iosxe
+    type: router
+    credentials:
+      default:
+        username: "%ENV{NET_USERNAME}"
+        password: "%ENV{NET_PASSWORD}"
+    connections:
+      cli:
+        protocol: ssh
+        ip: 10.255.0.14
+
+topology:
+  CORE-R1:
+    interfaces:
+      GigabitEthernet0/0.10:
+        ipv4: 192.168.1.17/30
+        link: core-backbone
+      GigabitEthernet0/1:
+        ipv4: 192.168.1.2/30
+        link: to-site1
+  CORE-R2:
+    interfaces:
+      GigabitEthernet0/0.10:
+        ipv4: 192.168.1.18/30
+        link: core-backbone
+      GigabitEthernet0/3:
+        ipv4: 192.168.1.10/30
+        link: to-site3
