@@ -1,5 +1,7 @@
 # Enterprise Hybrid Multi-Cloud Network Simulation
 
+[![Network Infrastructure CI](https://github.com/vijaykumarnaroju76-commits/enterprise-hybrid-network-sim/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/vijaykumarnaroju76-commits/enterprise-hybrid-network-sim/actions/workflows/ci.yml)
+
 > Production-style network engineering lab connecting an on-premises enterprise to **AWS** and **Azure** with redundant routing, infrastructure as code, automation, and failure-driven troubleshooting.
 
 ![Terraform](https://img.shields.io/badge/Terraform-IaC-7B42BC?logo=terraform&logoColor=white)
