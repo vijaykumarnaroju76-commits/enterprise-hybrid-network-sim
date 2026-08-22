@@ -1,0 +1,13 @@
+# Copy to terraform.tfvars and fill in real values, or set the equivalent
+# TF_VAR_ environment variables instead. terraform.tfvars itself is
+# git-ignored — never commit real subscription/PSK values.
+
+location            = "East US"
+resource_group_name = "rg-enterprise-hybrid-sim"
+core_r1_public_ip    = "203.0.113.21"
+core_r2_public_ip    = "203.0.113.20"
+
+# Prefer TF_VAR_azure_vpn_psk_primary / TF_VAR_azure_vpn_psk_backup over
+# putting these here at all.
+# azure_vpn_psk_primary = "REPLACE_ME_32_CHAR_RANDOM_STRING"
+# azure_vpn_psk_backup  = "REPLACE_ME_32_CHAR_RANDOM_STRING"

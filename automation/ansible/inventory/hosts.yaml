@@ -1,0 +1,28 @@
+---
+# Mirrors automation/inventory.yaml (Netmiko) and documentation/architecture.md
+# section 2 (Router ID plan). Credentials come from environment/vault, never here.
+all:
+  children:
+    core:
+      hosts:
+        CORE-R1:
+          ansible_host: 10.255.0.1
+        CORE-R2:
+          ansible_host: 10.255.0.2
+    branch:
+      hosts:
+        SITE1-RTR:
+          ansible_host: 10.255.0.11
+        SITE2-RTR:
+          ansible_host: 10.255.0.12
+        SITE3-RTR:
+          ansible_host: 10.255.0.13
+        SITE4-RTR:
+          ansible_host: 10.255.0.14
+  vars:
+    ansible_connection: ansible.netcommon.network_cli
+    ansible_network_os: cisco.ios.ios
+    ansible_user: "{{ lookup('env', 'NET_USERNAME') }}"
+    ansible_password: "{{ lookup('env', 'NET_PASSWORD') }}"
+    ansible_become: true
+    ansible_become_method: enable
