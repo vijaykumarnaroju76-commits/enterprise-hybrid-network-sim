@@ -1,0 +1,18 @@
+Python Network Automation Validation Evidence
+Generated: Sat Aug 22 16:01:33 CDT 2026
+
+=== Python version ===
+Python 3.9.6
+
+=== Automation source files ===
+automation/backup_configs.py
+automation/collect_bgp_neighbors.py
+automation/collect_interfaces.py
+automation/collect_ospf_neighbors.py
+automation/collect_routes.py
+automation/generate_validation_report.py
+automation/netmiko_common.py
+automation/pyats/pre_post_check.py
+
+=== Python compile validation ===
+Exit code: 0

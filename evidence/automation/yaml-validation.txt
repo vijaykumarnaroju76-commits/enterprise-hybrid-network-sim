@@ -1,0 +1,11 @@
+Network Automation YAML Validation Evidence
+Generated: Sat Aug 22 16:02:29 CDT 2026
+
+PASS: automation/ansible/inventory/hosts.yaml
+PASS: automation/ansible/playbooks/collect_state.yml
+PASS: automation/ansible/playbooks/post_change_validation.yml
+PASS: automation/ansible/playbooks/pre_change_validation.yml
+PASS: automation/inventory.yaml
+PASS: automation/pyats/testbed.yaml
+
+Validated 6 YAML files successfully.

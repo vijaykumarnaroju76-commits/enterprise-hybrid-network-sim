@@ -11,6 +11,10 @@
 ![Ansible](https://img.shields.io/badge/Ansible-Automation-EE0000?logo=ansible&logoColor=white)
 ![Status](https://img.shields.io/badge/Terraform-Validated-success)
 
+## Engineering Validation Evidence
+
+Reproducible validation results are available in the [Engineering Validation Evidence](evidence/README.md) directory, including AWS/Azure Terraform validation, Python automation compile checks, and Ansible/pyATS YAML validation.
+
 ## What I Built
 
 I designed this project to model the type of hybrid environment a network/cloud engineer may support in production:
