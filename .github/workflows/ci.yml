@@ -1,0 +1,94 @@
+name: Network Infrastructure CI
+
+on:
+  push:
+    branches:
+      - main
+      - "feature/**"
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  terraform:
+    name: Terraform Validation
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        environment:
+          - terraform/aws
+          - terraform/azure
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+        working-directory: ${{ matrix.environment }}
+
+      - name: Terraform Init
+        run: terraform init -backend=false
+        working-directory: ${{ matrix.environment }}
+
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: ${{ matrix.environment }}
+
+  python:
+    name: Python Automation Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Compile Python automation
+        run: python -m compileall -q automation
+
+  yaml:
+    name: YAML Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install YAML parser
+        run: pip install PyYAML
+
+      - name: Validate YAML files
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import yaml
+
+          files = list(Path("automation").rglob("*.yml"))
+          files += list(Path("automation").rglob("*.yaml"))
+
+          for file in files:
+              with file.open(encoding="utf-8") as handle:
+                  list(yaml.safe_load_all(handle))
+              print(f"OK: {file}")
+
+          print(f"Validated {len(files)} YAML files.")
+          PY
+

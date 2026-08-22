@@ -1,83 +1,248 @@
-# Enterprise Hybrid & Multi-Cloud Network Simulation
+# Enterprise Hybrid Multi-Cloud Network Simulation
 
-A simulated enterprise network — on-premises OSPF/BGP routing behind a Palo Alto perimeter, extended over redundant IPsec/BGP VPNs into both **AWS** and **Azure** — built as a GNS3 lab, documented like production, automated with Python/Ansible/pyATS, and provisioned in the cloud with Terraform.
+> Production-style network engineering lab connecting an on-premises enterprise to **AWS** and **Azure** with redundant routing, infrastructure as code, automation, and failure-driven troubleshooting.
 
-```
+![Terraform](https://img.shields.io/badge/Terraform-IaC-7B42BC?logo=terraform&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-Hybrid_Networking-232F3E?logo=amazonaws&logoColor=white)
+![Azure](https://img.shields.io/badge/Azure-Hybrid_Networking-0078D4?logo=microsoftazure&logoColor=white)
+![Python](https://img.shields.io/badge/Python-Network_Automation-3776AB?logo=python&logoColor=white)
+![Ansible](https://img.shields.io/badge/Ansible-Automation-EE0000?logo=ansible&logoColor=white)
+![Status](https://img.shields.io/badge/Terraform-Validated-success)
+
+## What I Built
+
+I designed this project to model the type of hybrid environment a network/cloud engineer may support in production:
+
+- Multi-area **OSPF** enterprise routing with redundant core routers
+- **BGP** connectivity between the enterprise, AWS, and Azure
+- Redundant **IPsec Site-to-Site VPN** paths
+- AWS **VPC + Transit Gateway + VPN** architecture
+- Azure **VNet + VPN Gateway + UDR** architecture
+- **Terraform** infrastructure definitions for both clouds
+- **Python + Netmiko**, **Ansible**, and **pyATS/Genie** network automation
+- Pre/post-change validation and configuration backup workflows
+- Nine failure-scenario runbooks covering realistic routing, VPN, firewall, and cloud failures
+
+## Architecture at a Glance
+
+```text
                          INTERNET
-                             |
-                      ┌─────────────┐
-                      │ Palo Alto   │
-                      │  Firewall   │
-                      └──────┬──────┘
-                             |
-                    ┌────────┴────────┐
-                    │ Enterprise Core │
-                    └────────┬────────┘
-                         /         \
-                       R1           R2
-                        \           /
-                         \   BGP   /
-                          \       /
-                    ┌──────┴───────┐
-                    │              │
-                   AWS           Azure
-                    │              │
-             Transit Gateway   VPN Gateway
-                /       \        /       \
-            Prod VPC   Dev VPC Prod VNet Dev VNet
+                            |
+                     +--------------+
+                     | Palo Alto FW |
+                     +------+-------+
+                            |
+                    +-------+-------+
+                    | Enterprise    |
+                    | Core          |
+                    +-------+-------+
+                       /         \
+                  CORE-R1       CORE-R2
+                  /    \         /    \
+             Site1   Site2   Site3   Site4
+              A10     A20     A30     A40
+                 \      \     /      /
+                  +------\---/------+
+                         Area 0
+
+                  Hybrid Cloud Edge
+                  /                \
+                 /                  \
+        AWS Transit Gateway      Azure VPN Gateway
+          /            \          /            \
+     Prod VPC        Dev VPC  Prod VNet      Dev VNet
 ```
 
-Full topology, addressing, and redundancy design: [`documentation/architecture.md`](documentation/architecture.md).
+Full addressing, ASNs, security zones, routing domains, and traffic flows are documented in [`documentation/architecture.md`](documentation/architecture.md).
 
-## Why this exists
+## Engineering Highlights
 
-This isn't a checklist of buzzwords bolted onto a diagram. It's built in stages, each one runnable and independently defensible: a professional network design, then routing that actually redistributes and filters correctly, then real hybrid cloud connectivity, then nine deliberately-injected failures worked end-to-end, then automation that could actually catch those failures, then the Terraform that provisions the cloud half of it. Every document cross-references the others and reuses the same IP/ASN plan — nothing here is decorative.
+| Area | Implementation |
+|---|---|
+| Enterprise routing | OSPF Area 0 backbone with branch Areas 10/20/30/40 |
+| Cloud routing | eBGP from enterprise AS 65000 to AWS AS 64512 and Azure AS 65515 |
+| AWS resilience | Two Site-to-Site VPN connections, four IPsec tunnels total |
+| Azure connectivity | Route-based VPN Gateway with BGP and separate on-prem/Azure peer addressing |
+| Route control | Summarization, filtering, local preference, AS-path prepending, controlled redistribution |
+| Automation | Netmiko state collection, Ansible validation, pyATS/Genie pre/post checks |
+| IaC | Terraform definitions for AWS and Azure networking |
+| Operations | Nine incident runbooks with symptom -> investigation -> root cause -> fix -> validation |
 
-## Repository structure
+## Failure-Driven Troubleshooting
 
+Instead of documenting only the healthy design, the lab includes deliberately modeled failure scenarios:
+
+1. BGP neighbor down
+2. OSPF adjacency failure
+3. Wrong route advertisement
+4. Route redistribution loop
+5. VPN tunnel failure
+6. NAT misconfiguration
+7. Firewall policy denial
+8. Asymmetric routing
+9. Cloud route-table error
+
+Each runbook follows an operations-oriented workflow:
+
+```text
+SYMPTOM
+   ↓
+INVESTIGATION
+   ↓
+COMMANDS / EVIDENCE
+   ↓
+ROOT CAUSE
+   ↓
+FIX
+   ↓
+VALIDATION
 ```
-documentation/
-  architecture.md          Topology, IP/VLAN plan, routing domains, security zones, traffic flows
-  routing.md                OSPF + BGP + redistribution + filtering + redundancy, with show-command output
-  cloud-networking.md       AWS (VPC/TGW/VPN) and Azure (VNet/UDR/VPN Gateway) design
-  failure-scenarios/        9 incidents: SYMPTOM -> INVESTIGATION -> COMMANDS -> ROOT CAUSE -> FIX -> VALIDATION
-  troubleshooting.md         General troubleshooting reference (OSPF/BGP/VPN/interfaces)
-  validation-testing.md      Full test plan: OSPF, BGP, VPN, end-to-end, performance, failover, security
-automation/
-  collect_*.py, backup_configs.py, generate_validation_report.py   Netmiko collection scripts
-  ansible/                   Pre/post-change validation playbooks (Genie-parsed state, diffed)
-  pyats/                     Standalone pyATS/Genie pre/post check, usable as a CI gate
+
+See [`documentation/failure-scenarios/`](documentation/failure-scenarios/).
+
+## Automation
+
+The automation layer is designed around repeatable network change validation.
+
+```text
+Collect state
+    ↓
+Backup configurations
+    ↓
+Apply / simulate change
+    ↓
+Collect post-change state
+    ↓
+Compare routing + interfaces + neighbors
+    ↓
+Generate validation report
+```
+
+Included tooling:
+
+- **Netmiko** — configuration backup and state collection
+- **Ansible** — repeatable pre/post-change workflows
+- **pyATS / Genie** — structured network-state parsing and validation
+- **Python** — report generation and operational utilities
+
+Start with [`automation/README.md`](automation/README.md).
+
+## Infrastructure as Code
+
+Terraform defines the cloud networking layer.
+
+```text
 terraform/
-  aws/                       Prod + Dev VPC, Transit Gateway, dual Site-to-Site VPN
-  azure/                     Prod + Dev VNet, per-VNet VPN Gateway, UDRs
-lab-notes/
-  implementation-notes.md    Real-world lessons learned building this lab
-scripts/
-  route-verification.sh, traffic-analysis.sh, vpn-tunnel-test.sh    Reference verification scripts
+├── aws/
+│   ├── VPCs
+│   ├── Transit Gateway
+│   ├── TGW route tables
+│   └── redundant Site-to-Site VPN
+└── azure/
+    ├── VNets
+    ├── VPN Gateways
+    ├── Local Network Gateways
+    └── UDRs
 ```
 
-## The build, in stages
+### Validation performed
 
-| Stage | What it adds | Where |
-|---|---|---|
-| 1. Architecture | Clean topology, IP addressing, VLANs/subnets, routing domains, security zones, traffic flows | [`documentation/architecture.md`](documentation/architecture.md) |
-| 2. Routing | OSPF + BGP, route redistribution, route filtering, redundancy, `show` command walkthroughs | [`documentation/routing.md`](documentation/routing.md) |
-| 3. Cloud networking | On-prem -> AWS (VPC/subnets/route tables/TGW/VPN) -> Azure (VNet/subnets/UDR/VPN Gateway) | [`documentation/cloud-networking.md`](documentation/cloud-networking.md) |
-| 4. Failure scenarios | 9 incidents worked end-to-end: BGP down, OSPF failure, bad advertisement, redistribution loop, VPN failure, NAT misconfig, firewall denial, asymmetric routing, cloud route-table error | [`documentation/failure-scenarios/`](documentation/failure-scenarios/) |
-| 5. Automation | Netmiko collection + validation report, Ansible + pyATS/Genie pre/post-change validation | [`automation/`](automation/) |
-| 6. Terraform | AWS and Azure provisioned as code, matching the design exactly | [`terraform/`](terraform/) |
-| 7. Git workflow | Feature-branch -> PR -> merge process used to build all of the above | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
+The Terraform configurations were formatted and validated locally:
 
-## Quick reference
+```text
+AWS
+Success! The configuration is valid.
 
-- **Addressing/ASNs/router IDs**: all defined once in [`documentation/architecture.md`](documentation/architecture.md) — every other document reuses these values.
-- **Redundancy model**: CORE-R1 is primary to AWS / backup to Azure; CORE-R2 is primary to Azure / backup to AWS. See [`documentation/routing.md`](documentation/routing.md) §5.
-- **Run the automation**: see [`automation/README.md`](automation/README.md) for the Netmiko/Ansible/pyATS quick start.
-- **Provision the cloud side**: see [`terraform/README.md`](terraform/README.md).
-- **Contributing**: see [`CONTRIBUTING.md`](CONTRIBUTING.md) for the branch/PR workflow this repository itself was built with.
+Azure
+Success! The configuration is valid.
+```
 
-## Scope and honesty about simplifications
+Additional checks performed during the upgrade:
 
-- On-prem is the hybrid hub — there is no direct AWS-to-Azure link. Cross-cloud traffic transits on-premises. This is deliberate (see [`documentation/architecture.md`](documentation/architecture.md) §7), not an oversight.
-- Azure uses one VPN Gateway per VNet rather than a Virtual WAN hub (AWS Transit Gateway's rough equivalent). Called out explicitly in [`documentation/cloud-networking.md`](documentation/cloud-networking.md) §2.1 as a documented future enhancement, not an inconsistency.
-- Devices in `documentation/` and `automation/` are simulated in GNS3; Terraform provisions real cloud resource *definitions* but this repository does not include live cloud credentials or state, and Terraform has never been applied against a real account from this repo.
+```text
+terraform fmt -recursive terraform/
+python3 -m compileall -q automation
+git diff --check
+```
+
+Provider lock files are committed for reproducible initialization.
+
+## Repository Map
+
+```text
+documentation/
+├── architecture.md
+├── routing.md
+├── cloud-networking.md
+├── validation-testing.md
+├── troubleshooting.md
+└── failure-scenarios/
+
+automation/
+├── collect_interfaces.py
+├── collect_routes.py
+├── collect_ospf_neighbors.py
+├── collect_bgp_neighbors.py
+├── backup_configs.py
+├── generate_validation_report.py
+├── ansible/
+└── pyats/
+
+terraform/
+├── aws/
+└── azure/
+
+scripts/
+├── route-verification.sh
+├── traffic-analysis.sh
+└── vpn-tunnel-test.sh
+```
+
+## Explore the Project
+
+| If you want to see... | Start here |
+|---|---|
+| Overall architecture | [`documentation/architecture.md`](documentation/architecture.md) |
+| OSPF/BGP design | [`documentation/routing.md`](documentation/routing.md) |
+| AWS + Azure networking | [`documentation/cloud-networking.md`](documentation/cloud-networking.md) |
+| Troubleshooting examples | [`documentation/failure-scenarios/`](documentation/failure-scenarios/) |
+| Automation | [`automation/README.md`](automation/README.md) |
+| Terraform | [`terraform/README.md`](terraform/README.md) |
+| Test strategy | [`documentation/validation-testing.md`](documentation/validation-testing.md) |
+
+## Skills Demonstrated
+
+`OSPF` · `BGP` · `Route Redistribution` · `Route Filtering` · `IPsec VPN` · `Palo Alto` · `AWS VPC` · `AWS Transit Gateway` · `Azure VNet` · `Azure VPN Gateway` · `Terraform` · `Python` · `Netmiko` · `Ansible` · `pyATS` · `Genie` · `Git`
+
+## Validation Scope
+
+This repository is a **simulation and infrastructure-design project**.
+
+- Network devices are modeled as a lab environment.
+- Terraform configuration has passed `terraform validate`.
+- Terraform definitions are not presented as proof that cloud resources were deployed into a live production account.
+- Example CLI output should be treated as expected-state or illustrative output unless specifically identified as captured lab evidence.
+
+That distinction is intentional: the goal is to demonstrate technically defensible architecture, automation, validation, and troubleshooting without overstating what was deployed.
+
+## Development Workflow
+
+This upgrade was developed through a feature branch and pull request workflow:
+
+```text
+main
+  ↓
+feature branch
+  ↓
+implementation
+  ↓
+validation
+  ↓
+pull request
+  ↓
+technical corrections
+  ↓
+merge
+```
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the repository workflow.
