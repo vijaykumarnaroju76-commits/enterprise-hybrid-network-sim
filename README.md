@@ -31,6 +31,9 @@ I designed this project to model the type of hybrid environment a network/cloud 
 
 ## Architecture at a Glance
 
+![Enterprise Hybrid Network Architecture](docs/images/enterprise-hybrid-network-architecture.png)
+
+
 ```text
                          INTERNET
                             |
