@@ -233,25 +233,3 @@ This repository is a **simulation and infrastructure-design project**.
 - Example CLI output should be treated as expected-state or illustrative output unless specifically identified as captured lab evidence.
 
 That distinction is intentional: the goal is to demonstrate technically defensible architecture, automation, validation, and troubleshooting without overstating what was deployed.
-
-## Development Workflow
-
-This upgrade was developed through a feature branch and pull request workflow:
-
-```text
-main
-  ↓
-feature branch
-  ↓
-implementation
-  ↓
-validation
-  ↓
-pull request
-  ↓
-technical corrections
-  ↓
-merge
-```
-
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the repository workflow.
