@@ -1,0 +1,5 @@
+healthy: PASS (expected PASS)
+ospf-incomplete: FAIL (expected FAIL)
+bgp-down: FAIL (expected FAIL)
+unparsed-output: FAIL (expected FAIL)
+recovered: PASS (expected PASS)

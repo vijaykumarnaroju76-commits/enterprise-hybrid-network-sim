@@ -53,9 +53,16 @@ automation/
     pre_post_check.py
 ```
 
+## Offline demonstration
+
+From the repository root, run `python3 automation/demo.py`. This requires only
+Python and writes clearly labeled synthetic reports. See
+[the validation guide](../documentation/routing-demo.md) for scope and live collection.
+
 ## Quick start
 
 ```bash
+cd automation
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
@@ -85,3 +92,7 @@ Post-change compares the new Genie-parsed state against the pre-change snapshot 
 ## pyATS/Genie
 
 `pyats/testbed.yaml` describes the same six devices in pyATS testbed format. `pyats/pre_post_check.py` is a standalone script usable outside Ansible for the same pre/post diff, e.g. from a CI pipeline gate before merging a config-change PR.
+
+The report counts only FULL OSPF adjacencies and numeric BGP prefix-count states.
+Missing or malformed parsed evidence fails validation. Devices configured with
+zero expected BGP neighbors are explicitly N/A for BGP.

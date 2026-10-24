@@ -1,0 +1,15 @@
+test_branch_bgp_not_applicable (test_validation.ValidationTests.test_branch_bgp_not_applicable) ... ok
+test_duplicate_inventory_rejected (test_validation.ValidationTests.test_duplicate_inventory_rejected) ... ok
+test_empty_inventory_rejected (test_validation.ValidationTests.test_empty_inventory_rejected) ... ok
+test_invalid_count_rejected (test_validation.ValidationTests.test_invalid_count_rejected) ... ok
+test_malformed_fails_closed (test_validation.ValidationTests.test_malformed_fails_closed) ... ok
+test_missing_device_fails (test_validation.ValidationTests.test_missing_device_fails) ... ok
+test_only_full_ospf_counts (test_validation.ValidationTests.test_only_full_ospf_counts) ... ok
+test_scenarios (test_validation.ValidationTests.test_scenarios) ... ok
+test_unreachable_fails (test_validation.ValidationTests.test_unreachable_fails) ... ok
+test_zero_prefix_bgp_is_established (test_validation.ValidationTests.test_zero_prefix_bgp_is_established) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.001s
+
+OK

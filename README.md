@@ -11,6 +11,20 @@
 ![Ansible](https://img.shields.io/badge/Ansible-Automation-EE0000?logo=ansible&logoColor=white)
 ![Status](https://img.shields.io/badge/Terraform-Validated-success)
 
+## Run the offline demo
+
+From the repository root, with Python 3.9 or newer:
+
+```bash
+python3 automation/demo.py
+python3 -m unittest discover -s tests -v
+```
+
+The demo checks healthy routing, incomplete OSPF adjacency, a down BGP peer,
+unparsed output, and recovery. Reports are written to `automation/output/demo/`.
+All demo inputs are synthetic; no devices, credentials, packages, or cloud accounts
+are needed. See [the demo and live validation guide](documentation/routing-demo.md).
+
 ## Engineering Validation Evidence
 
 Reproducible validation results are available in the [Engineering Validation Evidence](evidence/README.md) directory, including AWS/Azure Terraform validation, Python automation compile checks, and Ansible/pyATS YAML validation.

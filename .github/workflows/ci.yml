@@ -55,6 +55,12 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Run routing validation tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Run offline routing demo
+        run: python automation/demo.py
+
       - name: Compile Python automation
         run: python -m compileall -q automation
 
